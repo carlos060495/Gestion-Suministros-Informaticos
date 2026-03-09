@@ -1,0 +1,129 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow-sm border-0">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">
+                        <i class="bi bi-person-circle"></i> Mi Perfil
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <!-- Información del Usuario -->
+                    <div class="mb-4">
+                        <h5 class="border-bottom pb-2 mb-3">Información de la Cuenta</h5>
+
+                        <div class="row mb-3">
+                            <div class="col-md-4">
+                                <label class="fw-bold text-muted">
+                                    <i class="bi bi-person"></i> Usuario:
+                                </label>
+                            </div>
+                            <div class="col-md-8">
+                                <p class="mb-0">{{ current_user.username }}</p>
+                            </div>
+                        </div>
+
+                        <div class="row mb-3">
+                            <div class="col-md-4">
+                                <label class="fw-bold text-muted">
+                                    <i class="bi bi-shield-check"></i> Rol:
+                                </label>
+                            </div>
+                            <div class="col-md-8">
+                                <span class="badge {{ 'bg-info' if current_user.rol == 'admin' else 'bg-secondary' }} px-3 py-2">
+                                    {{ current_user.rol.upper() }}
+                                </span>
+                            </div>
+                        </div>
+
+                        <div class="row mb-3">
+                            <div class="col-md-4">
+                                <label class="fw-bold text-muted">
+                                    <i class="bi bi-toggle-on"></i> Estado:
+                                </label>
+                            </div>
+                            <div class="col-md-8">
+                                {% if current_user.activo %}
+                                    <span class="badge bg-success px-3 py-2">Activo</span>
+                                {% else %}
+                                    <span class="badge bg-danger px-3 py-2">Inactivo</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <hr>
+
+                    <!-- Formulario para Cambiar Contraseña -->
+                    <div class="mt-4">
+                        <h5 class="border-bottom pb-2 mb-3">
+                            <i class="bi bi-key-fill"></i> Cambiar Contraseña
+                        </h5>
+
+                        <div class="alert alert-info">
+                            <i class="bi bi-info-circle"></i>
+                            <strong>Importante:</strong> Tu contraseña debe tener al menos 6 caracteres.
+                        </div>
+
+                        <form action="{{ url_for('cambiar_password') }}" method="POST">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                            <div class="mb-3">
+                                <label for="password_actual" class="form-label fw-bold">
+                                    <i class="bi bi-lock"></i> Contraseña Actual
+                                </label>
+                                <input type="password"
+                                       class="form-control"
+                                       id="password_actual"
+                                       name="password_actual"
+                                       placeholder="Ingresa tu contraseña actual"
+                                       required
+                                       minlength="6">
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="nueva_password" class="form-label fw-bold">
+                                    <i class="bi bi-lock-fill"></i> Nueva Contraseña
+                                </label>
+                                <input type="password"
+                                       class="form-control"
+                                       id="nueva_password"
+                                       name="nueva_password"
+                                       placeholder="Ingresa tu nueva contraseña"
+                                       required
+                                       minlength="6">
+                                <small class="text-muted">Mínimo 6 caracteres</small>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="confirmar_password" class="form-label fw-bold">
+                                    <i class="bi bi-shield-lock"></i> Confirmar Nueva Contraseña
+                                </label>
+                                <input type="password"
+                                       class="form-control"
+                                       id="confirmar_password"
+                                       name="confirmar_password"
+                                       placeholder="Confirma tu nueva contraseña"
+                                       required
+                                       minlength="6">
+                            </div>
+
+                            <div class="d-grid gap-2">
+                                <button type="submit" class="btn btn-primary btn-lg">
+                                    <i class="bi bi-check-circle"></i> Cambiar Contraseña
+                                </button>
+                                <a href="{{ url_for('index') }}" class="btn btn-secondary">
+                                    <i class="bi bi-arrow-left"></i> Volver
+                                </a>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

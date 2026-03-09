@@ -1,0 +1,466 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>Panel de Gestión de Inventario</h2>
+    <div>
+        <a href="{{ url_for('productos_archivados') }}" class="btn btn-outline-secondary me-2">
+            <i class="bi bi-archive"></i> Archivados
+        </a>
+        <a href="{{ url_for('nuevo_producto') }}" class="btn btn-success">
+            <i class="bi bi-plus-circle"></i> Añadir Producto
+        </a>
+    </div>
+</div>
+
+<!-- Barra de búsqueda -->
+<div class="card shadow-sm mb-3">
+    <div class="card-body">
+        <form method="GET" action="{{ url_for('inventario') }}" class="row g-3 align-items-center">
+            <div class="col-md-9">
+                <div class="input-group">
+                    <span class="input-group-text bg-white">
+                        <i class="bi bi-search"></i>
+                    </span>
+                    <input type="text"
+                           name="busqueda"
+                           class="form-control"
+                           placeholder="Buscar por nombre, referencia o descripción..."
+                           value="{{ busqueda if busqueda else '' }}"
+                           autofocus>
+                </div>
+            </div>
+            <div class="col-md-3 d-grid gap-2 d-md-flex">
+                <button type="submit" class="btn btn-primary flex-fill">
+                    <i class="bi bi-search"></i> Buscar
+                </button>
+                {% if busqueda %}
+                <a href="{{ url_for('inventario') }}" class="btn btn-outline-secondary flex-fill">
+                    <i class="bi bi-x-circle"></i> Limpiar
+                </a>
+                {% endif %}
+            </div>
+        </form>
+        {% if busqueda %}
+        <div class="mt-2">
+            <small class="text-muted">
+                <i class="bi bi-info-circle"></i> Resultados de búsqueda para: <strong>"{{ busqueda }}"</strong>
+            </small>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<div class="card shadow-sm">
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>ID</th>
+                    <th>Producto</th>
+                    <th>Referencia</th>
+                    <th>Stock Actual</th>
+                    <th>Ubicación</th>
+                    <th>Reabastecer</th>
+                    <th>P. Venta</th>
+                    <th class="text-center">Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in productos %}
+                {% set p = item.producto %}
+                <tr>
+                    <td>{{ p.id }}</td>
+                    <td><strong>{{ p.nombre }}</strong></td>
+                    <td>
+                        {% if p.referencia %}
+                            <span class="badge bg-secondary">{{ p.referencia }}</span>
+                        {% else %}
+                            <span class="text-muted">-</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if item.alerta == 'danger' %}
+                            <span class="badge bg-danger">
+                                {{ p.cantidad_actual }} / {{ p.stock_maximo }}
+                                <i class="bi bi-exclamation-triangle-fill"></i>
+                            </span>
+                            <br>
+                            <small class="text-danger fw-bold">⚠️ CRÍTICO - PEDIR AL PROVEEDOR</small>
+                        {% elif item.alerta == 'warning' %}
+                            <span class="badge bg-warning text-dark">
+                                {{ p.cantidad_actual }} / {{ p.stock_maximo }}
+                                <i class="bi bi-exclamation-circle"></i>
+                            </span>
+                            <br>
+                            <small class="text-warning fw-bold">Stock Bajo</small>
+                        {% elif item.alerta == 'info' %}
+                            <span class="badge bg-info text-dark">
+                                {{ p.cantidad_actual }} / {{ p.stock_maximo }}
+                                <i class="bi bi-inbox-fill"></i>
+                            </span>
+                            <br>
+                            <small class="text-info fw-bold">Casi Lleno</small>
+                        {% else %}
+                            <span class="badge bg-success">
+                                {{ p.cantidad_actual }} / {{ p.stock_maximo }}
+                            </span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if p.ubicacion %}
+                            <span class="badge bg-primary">
+                                <i class="bi bi-geo-alt-fill"></i> {{ p.ubicacion }}
+                            </span>
+                        {% else %}
+                            <span class="text-muted fst-italic">Sin ubicación</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <form action="{{ url_for('reabastecer_producto', producto_id=p.id) }}" method="POST" class="d-flex shadow-sm">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                            <input type="number" name="cantidad" class="form-control form-control-sm" placeholder="Cant." style="width: 70px;" required min="1">
+                            <button type="submit" class="btn btn-success btn-sm ms-1">
+                                <i class="bi bi-plus-lg"></i> +
+                            </button>
+                        </form>
+                    </td>
+                    <td>{{ "%.2f"|format(p.precio_venta) }}€</td>
+                    <td class="text-center">
+                        <button type="button" class="btn btn-sm btn-success" data-bs-toggle="modal" data-bs-target="#modalVenta{{ p.id }}">
+                            <i class="bi bi-cart-plus"></i> Vender
+                        </button>
+                        <a href="{{ url_for('editar_producto', id=p.id) }}"
+                           class="btn btn-sm btn-outline-primary me-2">
+                           Editar
+                        </a>
+
+                        <a href="{{ url_for('eliminar_producto', id=p.id) }}"
+                           class="btn btn-sm btn-outline-danger"
+                           onclick="return confirm('¿Estás seguro de eliminar este producto?')">
+                           Eliminar
+                        </a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Controles de Paginación -->
+    {% if pagination.pages > 1 %}
+    <div class="card-footer bg-light">
+        <nav aria-label="Navegación de inventario">
+            <ul class="pagination justify-content-center mb-0">
+                <!-- Botón Primera Página -->
+                <li class="page-item {% if not pagination.has_prev %}disabled{% endif %}">
+                    <a class="page-link" href="{{ url_for('inventario', page=1, busqueda=busqueda) }}" aria-label="Primera">
+                        <span aria-hidden="true">&laquo;&laquo;</span>
+                    </a>
+                </li>
+
+                <!-- Botón Anterior -->
+                <li class="page-item {% if not pagination.has_prev %}disabled{% endif %}">
+                    <a class="page-link" href="{{ url_for('inventario', page=pagination.prev_num, busqueda=busqueda) if pagination.has_prev else '#' }}" aria-label="Anterior">
+                        <span aria-hidden="true">&laquo;</span>
+                    </a>
+                </li>
+
+                <!-- Números de página -->
+                {% for page_num in pagination.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+                    {% if page_num %}
+                        <li class="page-item {% if page_num == pagination.page %}active{% endif %}">
+                            <a class="page-link" href="{{ url_for('inventario', page=page_num, busqueda=busqueda) }}">{{ page_num }}</a>
+                        </li>
+                    {% else %}
+                        <li class="page-item disabled">
+                            <span class="page-link">...</span>
+                        </li>
+                    {% endif %}
+                {% endfor %}
+
+                <!-- Botón Siguiente -->
+                <li class="page-item {% if not pagination.has_next %}disabled{% endif %}">
+                    <a class="page-link" href="{{ url_for('inventario', page=pagination.next_num, busqueda=busqueda) if pagination.has_next else '#' }}" aria-label="Siguiente">
+                        <span aria-hidden="true">&raquo;</span>
+                    </a>
+                </li>
+
+                <!-- Botón Última Página -->
+                <li class="page-item {% if not pagination.has_next %}disabled{% endif %}">
+                    <a class="page-link" href="{{ url_for('inventario', page=pagination.pages, busqueda=busqueda) }}" aria-label="Última">
+                        <span aria-hidden="true">&raquo;&raquo;</span>
+                    </a>
+                </li>
+            </ul>
+        </nav>
+
+        <!-- Información de paginación -->
+        <div class="text-center mt-3 text-muted small">
+            <i class="bi bi-info-circle"></i> Mostrando
+            <strong>{{ pagination.per_page * (pagination.page - 1) + 1 }}</strong> -
+            <strong>{{ [pagination.per_page * pagination.page, pagination.total]|min }}</strong>
+            de <strong>{{ pagination.total }}</strong> productos
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Modales para venta con selección de cliente -->
+{% for item in productos %}
+{% set p = item.producto %}
+<div class="modal fade" id="modalVenta{{ p.id }}" tabindex="-1" aria-labelledby="modalVentaLabel{{ p.id }}" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title" id="modalVentaLabel{{ p.id }}">
+                    <i class="bi bi-cart-plus"></i> Generar Venta/Reserva
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form action="{{ url_for('realizar_venta', producto_id=p.id) }}" method="POST">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                <div class="modal-body">
+                    <div class="alert alert-info">
+                        <strong>Producto:</strong> {{ p.nombre }}<br>
+                        <strong>Precio:</strong> {{ "%.2f"|format(p.precio_venta) }}€<br>
+                        <strong>Stock Disponible:</strong> {{ p.cantidad_actual }} unidades
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="cliente{{ p.id }}" class="form-label">
+                            <i class="bi bi-person-fill"></i> Cliente *
+                        </label>
+                        <select name="cliente_id" id="cliente{{ p.id }}" class="form-select" required>
+                            <option value="">-- Seleccionar Cliente --</option>
+                            {% for cliente in clientes %}
+                                <option value="{{ cliente.id }}">{{ cliente.username }}</option>
+                            {% endfor %}
+                        </select>
+                        <small class="text-muted">Selecciona el cliente para quien es esta reserva</small>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="cantidad{{ p.id }}" class="form-label">
+                            <i class="bi bi-box-seam"></i> Cantidad *
+                        </label>
+                        <input type="number" name="cantidad" id="cantidad{{ p.id }}"
+                               class="form-control" value="1" min="1" max="{{ p.cantidad_actual }}" required>
+                        <small class="text-muted">Máximo: {{ p.cantidad_actual }} unidades</small>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="descuento{{ p.id }}" class="form-label">
+                                <i class="bi bi-percent"></i> Descuento Cliente (%)
+                            </label>
+                            <input type="number" name="descuento" id="descuento{{ p.id }}"
+                                   class="form-control" value="0" min="0" max="100" step="0.1">
+                            <small class="text-muted">0-100%</small>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="iva{{ p.id }}" class="form-label">
+                                <i class="bi bi-calculator"></i> IVA (%)
+                            </label>
+                            <input type="number" name="iva" id="iva{{ p.id }}"
+                                   class="form-control" value="21" min="0" max="100" step="0.1">
+                            <small class="text-muted">Por defecto: 21%</small>
+                        </div>
+                    </div>
+
+                    <!-- Panel de Cálculo Automático -->
+                    <div class="card bg-light border-primary">
+                        <div class="card-header bg-primary text-white">
+                            <strong><i class="bi bi-calculator"></i> Desglose de Precios</strong>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-6">
+                                    <small class="text-muted">Precio Base (sin IVA):</small>
+                                </div>
+                                <div class="col-6 text-end">
+                                    <strong id="precioBase{{ p.id }}">{{ "%.2f"|format(p.precio_venta / 1.21) }}€</strong>
+                                </div>
+                            </div>
+                            <div class="row mt-2">
+                                <div class="col-6">
+                                    <small class="text-muted">IVA (<span id="ivaPercent{{ p.id }}">21</span>%):</small>
+                                </div>
+                                <div class="col-6 text-end">
+                                    <strong id="ivaAmount{{ p.id }}">{{ "%.2f"|format(p.precio_venta - (p.precio_venta / 1.21)) }}€</strong>
+                                </div>
+                            </div>
+                            <div class="row mt-2">
+                                <div class="col-6">
+                                    <small class="text-muted">Precio con IVA:</small>
+                                </div>
+                                <div class="col-6 text-end">
+                                    <strong id="precioConIva{{ p.id }}">{{ "%.2f"|format(p.precio_venta) }}€</strong>
+                                </div>
+                            </div>
+                            <div class="row mt-2">
+                                <div class="col-6">
+                                    <small class="text-muted">Descuento (<span id="descPercent{{ p.id }}">0</span>%):</small>
+                                </div>
+                                <div class="col-6 text-end">
+                                    <strong class="text-success" id="descAmount{{ p.id }}">0.00€</strong>
+                                </div>
+                            </div>
+                            <div class="row mt-2">
+                                <div class="col-6">
+                                    <small class="text-muted">Precio Final (unidad):</small>
+                                </div>
+                                <div class="col-6 text-end">
+                                    <strong class="text-primary" id="precioFinal{{ p.id }}">{{ "%.2f"|format(p.precio_venta) }}€</strong>
+                                </div>
+                            </div>
+                            <hr>
+                            <div class="row">
+                                <div class="col-6">
+                                    <strong>Cantidad:</strong>
+                                </div>
+                                <div class="col-6 text-end">
+                                    <strong id="cantidadDisplay{{ p.id }}">1</strong> unidad(es)
+                                </div>
+                            </div>
+                            <div class="row mt-2 bg-success text-white p-2 rounded">
+                                <div class="col-6">
+                                    <strong><i class="bi bi-cash-stack"></i> TOTAL:</strong>
+                                </div>
+                                <div class="col-6 text-end">
+                                    <strong class="fs-5" id="totalFinal{{ p.id }}">{{ "%.2f"|format(p.precio_venta) }}€</strong>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="alert alert-warning mt-3">
+                        <i class="bi bi-info-circle"></i> <strong>Importante:</strong>
+                        La reserva se creará en estado "Pendiente". El cliente tendrá 48h para recoger el producto.
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="bi bi-x-circle"></i> Cancelar
+                    </button>
+                    <button type="submit" class="btn btn-success">
+                        <i class="bi bi-check-circle"></i> Confirmar Venta
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endfor %}
+
+<script>
+// Debouncing: búsqueda automática con retardo de 500ms
+(function() {
+    const searchInput = document.querySelector('input[name="busqueda"]');
+    const searchForm = searchInput ? searchInput.form : null;
+    let debounceTimer;
+
+    if (searchInput && searchForm) {
+        // Colocar cursor al final del texto al cargar la página (después de búsqueda)
+        if (searchInput.value.length > 0) {
+            searchInput.focus();
+            searchInput.setSelectionRange(searchInput.value.length, searchInput.value.length);
+        }
+
+        // Evento de input: se dispara con cada tecla
+        searchInput.addEventListener('input', function() {
+            clearTimeout(debounceTimer);
+
+            const searchValue = this.value.trim();
+            const hasCurrentSearch = {{ 'true' if busqueda else 'false' }};
+
+            // Espera 500ms después de que el usuario deja de escribir
+            debounceTimer = setTimeout(() => {
+                // Si está vacío y no había búsqueda previa, no hacer nada
+                if (searchValue === '' && !hasCurrentSearch) {
+                    return;
+                }
+
+                // Si está vacío pero había búsqueda, limpiar
+                if (searchValue === '' && hasCurrentSearch) {
+                    window.location.href = '{{ url_for("inventario") }}';
+                    return;
+                }
+
+                // Enviar formulario automáticamente
+                searchForm.submit();
+            }, 500);
+        });
+
+        // Permitir buscar con Enter inmediatamente
+        searchInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                clearTimeout(debounceTimer);
+                searchForm.submit();
+            }
+        });
+    }
+})();
+
+// Cálculo automático de precios en modales de venta
+document.addEventListener('DOMContentLoaded', function() {
+    {% for item in productos %}
+    {% set p = item.producto %}
+    (function() {
+        const productoId = {{ p.id }};
+        const precioVentaOriginal = {{ p.precio_venta }};
+
+        const cantidadInput = document.getElementById('cantidad' + productoId);
+        const descuentoInput = document.getElementById('descuento' + productoId);
+        const ivaInput = document.getElementById('iva' + productoId);
+
+        function calcularPrecios() {
+            const cantidad = parseFloat(cantidadInput.value) || 1;
+            const descuento = parseFloat(descuentoInput.value) || 0;
+            const iva = parseFloat(ivaInput.value) || 21;
+
+            // Precio base sin IVA (asumiendo que el precio actual tiene 21% IVA)
+            const precioBaseSinIva = precioVentaOriginal / 1.21;
+
+            // Aplicar nuevo IVA
+            const precioConIva = precioBaseSinIva * (1 + iva / 100);
+
+            // Calcular monto de IVA
+            const montoIva = precioConIva - precioBaseSinIva;
+
+            // Aplicar descuento
+            const montoDescuento = precioConIva * (descuento / 100);
+            const precioFinalUnidad = precioConIva - montoDescuento;
+
+            // Total final
+            const totalFinal = precioFinalUnidad * cantidad;
+
+            // Actualizar valores en el DOM
+            document.getElementById('precioBase' + productoId).textContent = precioBaseSinIva.toFixed(2) + '€';
+            document.getElementById('ivaPercent' + productoId).textContent = iva.toFixed(1);
+            document.getElementById('ivaAmount' + productoId).textContent = montoIva.toFixed(2) + '€';
+            document.getElementById('precioConIva' + productoId).textContent = precioConIva.toFixed(2) + '€';
+            document.getElementById('descPercent' + productoId).textContent = descuento.toFixed(1);
+            document.getElementById('descAmount' + productoId).textContent = montoDescuento.toFixed(2) + '€';
+            document.getElementById('precioFinal' + productoId).textContent = precioFinalUnidad.toFixed(2) + '€';
+            document.getElementById('cantidadDisplay' + productoId).textContent = cantidad;
+            document.getElementById('totalFinal' + productoId).textContent = totalFinal.toFixed(2) + '€';
+        }
+
+        // Eventos para actualización en tiempo real
+        if (cantidadInput) cantidadInput.addEventListener('input', calcularPrecios);
+        if (descuentoInput) descuentoInput.addEventListener('input', calcularPrecios);
+        if (ivaInput) ivaInput.addEventListener('input', calcularPrecios);
+
+        // Calcular al abrir el modal
+        const modal = document.getElementById('modalVenta' + productoId);
+        if (modal) {
+            modal.addEventListener('shown.bs.modal', calcularPrecios);
+        }
+    })();
+    {% endfor %}
+});
+</script>
+
+{% endblock %}

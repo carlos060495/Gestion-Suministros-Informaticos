@@ -1,0 +1,222 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="bi bi-truck"></i> Gestión de Proveedores</h2>
+    <div>
+        <a href="{{ url_for('proveedores_archivados') }}" class="btn btn-outline-secondary me-2">
+            <i class="bi bi-archive"></i> Archivados
+        </a>
+        <a href="{{ url_for('nuevo_proveedor') }}" class="btn btn-success">
+            <i class="bi bi-plus-circle"></i> Nuevo Proveedor
+        </a>
+    </div>
+</div>
+
+<!-- Barra de búsqueda -->
+<div class="card shadow-sm mb-3">
+    <div class="card-body">
+        <form method="GET" action="{{ url_for('ver_proveedores') }}" class="row g-3 align-items-center">
+            <div class="col-md-9">
+                <div class="input-group">
+                    <span class="input-group-text bg-white">
+                        <i class="bi bi-search"></i>
+                    </span>
+                    <input type="text"
+                           name="busqueda"
+                           class="form-control"
+                           placeholder="Buscar por nombre de empresa o CIF..."
+                           value="{{ busqueda if busqueda else '' }}"
+                           autofocus>
+                </div>
+            </div>
+            <div class="col-md-3 d-grid gap-2 d-md-flex">
+                <button type="submit" class="btn btn-primary flex-fill">
+                    <i class="bi bi-search"></i> Buscar
+                </button>
+                {% if busqueda %}
+                <a href="{{ url_for('ver_proveedores') }}" class="btn btn-outline-secondary flex-fill">
+                    <i class="bi bi-x-circle"></i> Limpiar
+                </a>
+                {% endif %}
+            </div>
+        </form>
+        {% if busqueda %}
+        <div class="mt-2">
+            <small class="text-muted">
+                <i class="bi bi-info-circle"></i> Resultados de búsqueda para: <strong>"{{ busqueda }}"</strong>
+            </small>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<div class="card shadow-sm">
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>ID</th>
+                    <th>Empresa</th>
+                    <th>CIF</th>
+                    <th>Teléfono</th>
+                    <th>Descuento</th>
+                    <th>Productos</th>
+                    <th class="text-center">Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% if proveedores %}
+                    {% for item in proveedores %}
+                    {% set p = item.proveedor %}
+                    <tr>
+                        <td>{{ p.id }}</td>
+                        <td><strong>{{ p.nombre_empresa }}</strong></td>
+                        <td>{{ p.cif or '-' }}</td>
+                        <td>{{ p.telefono or '-' }}</td>
+                        <td>
+                            <span class="badge bg-primary">{{ p.descuento }}%</span>
+                        </td>
+                        <td>
+                            {% if item.num_productos > 0 %}
+                                <span class="badge bg-info text-white">
+                                    <i class="bi bi-box-seam"></i> {{ item.num_productos }} activo(s)
+                                </span>
+                            {% else %}
+                                <span class="badge bg-secondary">Sin productos</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-center">
+                            <a href="{{ url_for('detalle_proveedor', id=p.id) }}"
+                               class="btn btn-sm btn-info text-white mb-1">
+                                <i class="bi bi-eye"></i> Ver Detalle
+                            </a>
+                            <a href="{{ url_for('editar_proveedor', id=p.id) }}"
+                               class="btn btn-sm btn-outline-primary mb-1">
+                                <i class="bi bi-pencil"></i> Editar
+                            </a>
+                            <a href="{{ url_for('eliminar_proveedor', id=p.id) }}"
+                               class="btn btn-sm btn-outline-danger mb-1"
+                               onclick="return confirm('¿Desactivar este proveedor?')">
+                                <i class="bi bi-trash"></i> Eliminar
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                {% else %}
+                    <tr>
+                        <td colspan="7" class="text-center text-muted py-4">
+                            <i class="bi bi-inbox display-4"></i>
+                            <p class="mt-2">No hay proveedores registrados</p>
+                        </td>
+                    </tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Controles de Paginación -->
+    {% if pagination.pages > 1 %}
+    <div class="card-footer bg-light">
+        <nav aria-label="Navegación de proveedores">
+            <ul class="pagination justify-content-center mb-0">
+                <!-- Botón Primera Página -->
+                <li class="page-item {% if not pagination.has_prev %}disabled{% endif %}">
+                    <a class="page-link" href="{{ url_for('ver_proveedores', page=1, busqueda=busqueda) }}" aria-label="Primera">
+                        <span aria-hidden="true">&laquo;&laquo;</span>
+                    </a>
+                </li>
+
+                <!-- Botón Anterior -->
+                <li class="page-item {% if not pagination.has_prev %}disabled{% endif %}">
+                    <a class="page-link" href="{{ url_for('ver_proveedores', page=pagination.prev_num, busqueda=busqueda) if pagination.has_prev else '#' }}" aria-label="Anterior">
+                        <span aria-hidden="true">&laquo;</span>
+                    </a>
+                </li>
+
+                <!-- Números de página -->
+                {% for page_num in pagination.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+                    {% if page_num %}
+                        <li class="page-item {% if page_num == pagination.page %}active{% endif %}">
+                            <a class="page-link" href="{{ url_for('ver_proveedores', page=page_num, busqueda=busqueda) }}">{{ page_num }}</a>
+                        </li>
+                    {% else %}
+                        <li class="page-item disabled">
+                            <span class="page-link">...</span>
+                        </li>
+                    {% endif %}
+                {% endfor %}
+
+                <!-- Botón Siguiente -->
+                <li class="page-item {% if not pagination.has_next %}disabled{% endif %}">
+                    <a class="page-link" href="{{ url_for('ver_proveedores', page=pagination.next_num, busqueda=busqueda) if pagination.has_next else '#' }}" aria-label="Siguiente">
+                        <span aria-hidden="true">&raquo;</span>
+                    </a>
+                </li>
+
+                <!-- Botón Última Página -->
+                <li class="page-item {% if not pagination.has_next %}disabled{% endif %}">
+                    <a class="page-link" href="{{ url_for('ver_proveedores', page=pagination.pages, busqueda=busqueda) }}" aria-label="Última">
+                        <span aria-hidden="true">&raquo;&raquo;</span>
+                    </a>
+                </li>
+            </ul>
+        </nav>
+
+        <!-- Información de paginación -->
+        <div class="text-center mt-3 text-muted small">
+            <i class="bi bi-info-circle"></i> Mostrando
+            <strong>{{ pagination.per_page * (pagination.page - 1) + 1 }}</strong> -
+            <strong>{{ [pagination.per_page * pagination.page, pagination.total]|min }}</strong>
+            de <strong>{{ pagination.total }}</strong> proveedores
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<script>
+// Debouncing: búsqueda automática con retardo de 500ms
+(function() {
+    const searchInput = document.querySelector('input[name="busqueda"]');
+    const searchForm = searchInput ? searchInput.form : null;
+    let debounceTimer;
+
+    if (searchInput && searchForm) {
+        // Colocar cursor al final del texto al cargar la página
+        if (searchInput.value.length > 0) {
+            searchInput.focus();
+            searchInput.setSelectionRange(searchInput.value.length, searchInput.value.length);
+        }
+
+        searchInput.addEventListener('input', function() {
+            clearTimeout(debounceTimer);
+
+            const searchValue = this.value.trim();
+            const hasCurrentSearch = {{ 'true' if busqueda else 'false' }};
+
+            debounceTimer = setTimeout(() => {
+                if (searchValue === '' && !hasCurrentSearch) {
+                    return;
+                }
+
+                if (searchValue === '' && hasCurrentSearch) {
+                    window.location.href = '{{ url_for("ver_proveedores") }}';
+                    return;
+                }
+
+                searchForm.submit();
+            }, 500);
+        });
+
+        searchInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                clearTimeout(debounceTimer);
+                searchForm.submit();
+            }
+        });
+    }
+})();
+</script>
+
+{% endblock %}

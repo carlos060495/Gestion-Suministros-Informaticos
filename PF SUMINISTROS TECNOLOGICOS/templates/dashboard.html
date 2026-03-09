@@ -1,0 +1,302 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container-fluid">
+    <h2 class="mb-4">Dashboard de Negocio</h2>
+
+    <!-- Métricas Clave -->
+    <div class="row mb-4">
+        <div class="col-md-4 mb-3">
+            <div class="card shadow-sm border-0 h-100">
+                <div class="card-body text-center">
+                    <i class="bi bi-box-seam text-primary" style="font-size: 2.5rem;"></i>
+                    <h3 class="mt-3 mb-1 text-primary">{{ "{:,.2f}".format(valor_inventario) }}€</h3>
+                    <p class="text-muted mb-0">Valor del Inventario Actual</p>
+                    <small class="text-muted">Suma del valor de compra de todo el stock</small>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4 mb-3">
+            <div class="card shadow-sm border-0 h-100">
+                <div class="card-body text-center">
+                    <i class="bi bi-graph-up-arrow text-success" style="font-size: 2.5rem;"></i>
+                    <h3 class="mt-3 mb-1 text-success">{{ "{:.2f}".format(margen_beneficio) }}%</h3>
+                    <p class="text-muted mb-0">Margen de Beneficio Promedio</p>
+                    <small class="text-muted">Rentabilidad global de las ventas</small>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4 mb-3">
+            <div class="card shadow-sm border-0 h-100">
+                <div class="card-header bg-white py-2">
+                    <h6 class="mb-0 text-primary text-center">Top 3 Mejores Clientes</h6>
+                </div>
+                <div class="card-body p-2">
+                    <div class="table-responsive">
+                        <table class="table table-sm table-hover mb-0" style="font-size: 0.85rem;">
+                            <thead>
+                                <tr>
+                                    <th>Cliente</th>
+                                    <th class="text-center">Compras</th>
+                                    <th class="text-end">Total</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for cliente in top_clientes %}
+                                <tr>
+                                    <td>
+                                        <strong>{{ cliente.nombre }}</strong><br>
+                                        <small class="text-muted">{{ cliente.id_cliente }}</small>
+                                    </td>
+                                    <td class="text-center">
+                                        <span class="badge bg-info">{{ cliente.num_compras }}</span>
+                                    </td>
+                                    <td class="text-end">
+                                        <strong class="text-success">{{ "{:,.2f}".format(cliente.total_gastado) }}€</strong>
+                                    </td>
+                                </tr>
+                                {% else %}
+                                <tr>
+                                    <td colspan="3" class="text-center text-muted py-2">
+                                        Sin datos
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-lg-6 mb-4">
+            <div class="card shadow-sm border-0 h-100">
+                <div class="card-header bg-white py-3">
+                    <h5 class="mb-0 text-primary">Flujo de Caja Global</h5>
+                </div>
+                <div class="card-body">
+                    <div id="chart-bar" style="min-height: 400px; width: 100%;"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-6 mb-4">
+            <div class="card shadow-sm border-0 h-100">
+                <div class="card-header bg-white py-3">
+                    <h5 class="mb-0 text-primary">Top 3 Rendimiento de Productos</h5>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Producto</th>
+                                    <th class="text-center">Vendidos</th>
+                                    <th class="text-center">Costo Total</th>
+                                    <th class="text-center">Venta Total</th>
+                                    <th class="text-center">Ganancia</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in top_3 %}
+                                <tr>
+                                    <td><strong>{{ item.nombre }}</strong></td>
+                                    <td class="text-center">{{ item.cantidad }}</td>
+                                    <td class="text-center text-danger">{{ "{:,.2f}".format(item.costo_total) }}€</td>
+                                    <td class="text-center text-primary">{{ "{:,.2f}".format(item.venta_total) }}€</td>
+                                    <td class="text-center">
+                                        <span class="badge {% if item.ganancia >= 0 %}bg-success{% else %}bg-danger{% endif %}">
+                                            {{ "{:,.2f}".format(item.ganancia) }}€
+                                        </span>
+                                    </td>
+                                </tr>
+                                {% else %}
+                                <tr>
+                                    <td colspan="5" class="text-center py-5 text-muted">
+                                        No hay datos de ventas disponibles para mostrar el Top 3.
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Historial de Transacciones -->
+    <div class="row">
+        <div class="col-12 mb-4">
+            <div class="card shadow-sm border-0">
+                <div class="card-header bg-white py-3">
+                    <h5 class="mb-0 text-primary">Historial de Transacciones</h5>
+                </div>
+
+                <!-- Formulario de Filtros -->
+                <div class="card-body bg-light border-bottom">
+                    <form method="GET" action="{{ url_for('dashboard') }}" class="row g-3">
+                        <div class="col-md-3">
+                            <label for="fecha_inicio" class="form-label small">Fecha Inicio</label>
+                            <input type="date" class="form-control form-control-sm" id="fecha_inicio"
+                                   name="fecha_inicio" value="{{ filtro_fecha_inicio }}">
+                        </div>
+
+                        <div class="col-md-3">
+                            <label for="fecha_fin" class="form-label small">Fecha Fin</label>
+                            <input type="date" class="form-control form-control-sm" id="fecha_fin"
+                                   name="fecha_fin" value="{{ filtro_fecha_fin }}">
+                        </div>
+
+                        <div class="col-md-2">
+                            <label for="tipo" class="form-label small">Tipo</label>
+                            <select class="form-select form-select-sm" id="tipo" name="tipo">
+                                <option value="">Todos</option>
+                                <option value="compra" {% if filtro_tipo == 'compra' %}selected{% endif %}>Compras</option>
+                                <option value="venta" {% if filtro_tipo == 'venta' %}selected{% endif %}>Ventas</option>
+                            </select>
+                        </div>
+
+                        <div class="col-md-2">
+                            <label for="producto" class="form-label small">Producto</label>
+                            <select class="form-select form-select-sm" id="producto" name="producto">
+                                <option value="">Todos</option>
+                                {% for producto in productos %}
+                                <option value="{{ producto.id }}" {% if filtro_producto == producto.id|string %}selected{% endif %}>
+                                    {{ producto.nombre }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="col-md-2">
+                            <label for="involucrado" class="form-label small">Proveedor/Cliente</label>
+                            <input type="text" class="form-control form-control-sm" id="involucrado"
+                                   name="involucrado" placeholder="Buscar..." value="{{ filtro_involucrado }}">
+                        </div>
+
+                        <div class="col-12">
+                            <button type="submit" class="btn btn-primary btn-sm">
+                                <i class="bi bi-funnel"></i> Filtrar
+                            </button>
+                            <a href="{{ url_for('dashboard') }}" class="btn btn-secondary btn-sm">
+                                <i class="bi bi-x-circle"></i> Limpiar
+                            </a>
+                        </div>
+                    </form>
+                </div>
+
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover table-striped align-middle mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Fecha</th>
+                                    <th>Tipo</th>
+                                    <th>Proveedor/Cliente</th>
+                                    <th>Producto</th>
+                                    <th class="text-center">Cantidad</th>
+                                    <th class="text-end">Monto</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for transaccion in historial %}
+                                <tr>
+                                    <td>
+                                        <small class="text-muted">
+                                            {{ transaccion.fecha.strftime('%d/%m/%Y %H:%M') if transaccion.fecha else 'N/A' }}
+                                        </small>
+                                    </td>
+                                    <td>
+                                        {% if transaccion.tipo == 'Compra' %}
+                                            <span class="badge bg-danger">{{ transaccion.tipo }}</span>
+                                        {% else %}
+                                            <span class="badge bg-success">{{ transaccion.tipo }}</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ transaccion.involucrado }}</td>
+                                    <td>{{ transaccion.producto }}</td>
+                                    <td class="text-center">{{ transaccion.cantidad }}</td>
+                                    <td class="text-end">
+                                        {% if transaccion.tipo == 'Compra' %}
+                                            <span class="text-danger">-{{ "{:,.2f}".format(transaccion.monto) }}€</span>
+                                        {% else %}
+                                            <span class="text-success">+{{ "{:,.2f}".format(transaccion.monto) }}€</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% else %}
+                                <tr>
+                                    <td colspan="6" class="text-center py-5 text-muted">
+                                        No hay transacciones que coincidan con los filtros aplicados.
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                            {% if historial %}
+                            <tfoot class="table-light border-top border-2">
+                                <tr class="fw-bold">
+                                    <td colspan="4" class="text-end">TOTALES:</td>
+                                    <td class="text-center">{{ cantidad_total }}</td>
+                                    <td class="text-end">
+                                        {% if balance_neto >= 0 %}
+                                            <span class="text-success fw-bold">+{{ "{:,.2f}".format(balance_neto) }}€</span>
+                                        {% else %}
+                                            <span class="text-danger fw-bold">{{ "{:,.2f}".format(balance_neto) }}€</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                <tr class="small">
+                                    <td colspan="5" class="text-end text-muted">
+                                        <i class="bi bi-arrow-up-circle-fill text-success"></i> Ventas:
+                                        <strong class="text-success">{{ "{:,.2f}".format(total_ventas) }}€</strong>
+                                        <span class="mx-2">|</span>
+                                        <i class="bi bi-arrow-down-circle-fill text-danger"></i> Compras:
+                                        <strong class="text-danger">{{ "{:,.2f}".format(total_compras) }}€</strong>
+                                    </td>
+                                    <td class="text-end">
+                                        <small class="text-muted">Balance Neto</small>
+                                    </td>
+                                </tr>
+                            </tfoot>
+                            {% endif %}
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.plot.ly/plotly-2.35.2.min.js" charset="utf-8"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // 1. Obtener datos de Python
+        var graphBar = {{ graph_bar | safe }};
+
+        // 2. Configuración de diseño adicional para que encaje bien en la card
+        var layoutUpdate = {
+            margin: { t: 30, b: 40, l: 50, r: 20 },
+            autosize: true
+        };
+
+        // 3. Renderizar gráfico
+        if (graphBar && graphBar.data) {
+            Plotly.newPlot('chart-bar', graphBar.data, graphBar.layout, {
+                responsive: true,
+                displayModeBar: false
+            });
+
+            // Forzar ajuste de tamaño al cargar
+            Plotly.relayout('chart-bar', layoutUpdate);
+        } else {
+            document.getElementById('chart-bar').innerHTML =
+                '<div class="text-center mt-5 text-muted">No hay datos suficientes para generar el gráfico.</div>';
+        }
+    });
+</script>
+{% endblock %}

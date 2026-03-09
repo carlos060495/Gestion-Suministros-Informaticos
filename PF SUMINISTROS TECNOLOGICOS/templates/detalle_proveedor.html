@@ -1,0 +1,247 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2><i class="bi bi-truck"></i> Detalle del Proveedor</h2>
+        <h4 class="text-muted">{{ proveedor.nombre_empresa }}</h4>
+    </div>
+    <div>
+        <a href="{{ url_for('ver_proveedores') }}" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left"></i> Volver a Proveedores
+        </a>
+        <a href="{{ url_for('editar_proveedor', id=proveedor.id) }}" class="btn btn-primary">
+            <i class="bi bi-pencil"></i> Editar
+        </a>
+    </div>
+</div>
+
+<!-- Información del Proveedor -->
+<div class="card shadow-sm mb-4">
+    <div class="card-header bg-primary text-white">
+        <h5 class="mb-0"><i class="bi bi-info-circle"></i> Información del Proveedor</h5>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-6">
+                <ul class="list-unstyled">
+                    <li class="mb-2"><strong><i class="bi bi-building"></i> Empresa:</strong> {{ proveedor.nombre_empresa }}</li>
+                    <li class="mb-2"><strong><i class="bi bi-card-text"></i> CIF:</strong> {{ proveedor.cif or 'No especificado' }}</li>
+                    <li class="mb-2"><strong><i class="bi bi-telephone"></i> Teléfono:</strong> {{ proveedor.telefono or 'No especificado' }}</li>
+                </ul>
+            </div>
+            <div class="col-md-6">
+                <ul class="list-unstyled">
+                    <li class="mb-2"><strong><i class="bi bi-geo-alt"></i> Dirección:</strong> {{ proveedor.direccion or 'No especificada' }}</li>
+                    <li class="mb-2"><strong><i class="bi bi-percent"></i> Descuento:</strong>
+                        <span class="badge bg-primary">{{ proveedor.descuento }}%</span>
+                    </li>
+                    <li class="mb-2"><strong><i class="bi bi-check-circle"></i> Estado:</strong>
+                        {% if proveedor.active %}
+                            <span class="badge bg-success">Activo</span>
+                        {% else %}
+                            <span class="badge bg-secondary">Desactivado</span>
+                        {% endif %}
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Estadísticas -->
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card text-center shadow-sm border-primary">
+            <div class="card-body">
+                <h6 class="card-title text-muted">Total Productos</h6>
+                <h2 class="text-primary"><i class="bi bi-box-seam"></i> {{ estadisticas.total_productos }}</h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-center shadow-sm border-success">
+            <div class="card-body">
+                <h6 class="card-title text-muted">Productos Activos</h6>
+                <h2 class="text-success"><i class="bi bi-check-circle"></i> {{ estadisticas.productos_activos }}</h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-center shadow-sm border-info">
+            <div class="card-body">
+                <h6 class="card-title text-muted">Total Compras</h6>
+                <h2 class="text-info"><i class="bi bi-cart-check"></i> {{ estadisticas.total_compras }}</h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-center shadow-sm border-warning">
+            <div class="card-body">
+                <h6 class="card-title text-muted">Total Invertido</h6>
+                <h2 class="text-warning"><i class="bi bi-cash-stack"></i> {{ "%.2f"|format(estadisticas.total_invertido) }}€</h2>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Tabs para Productos y Compras -->
+<ul class="nav nav-tabs" id="proveedorTabs" role="tablist">
+    <li class="nav-item" role="presentation">
+        <button class="nav-link active" id="productos-tab" data-bs-toggle="tab" data-bs-target="#productos" type="button" role="tab">
+            <i class="bi bi-box-seam"></i> Productos ({{ productos_activos|length }})
+        </button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" id="compras-tab" data-bs-toggle="tab" data-bs-target="#compras" type="button" role="tab">
+            <i class="bi bi-cart-check"></i> Historial de Compras ({{ compras|length }})
+        </button>
+    </li>
+    {% if productos_inactivos %}
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" id="inactivos-tab" data-bs-toggle="tab" data-bs-target="#inactivos" type="button" role="tab">
+            <i class="bi bi-archive"></i> Productos Archivados ({{ productos_inactivos|length }})
+        </button>
+    </li>
+    {% endif %}
+</ul>
+
+<div class="tab-content border border-top-0 p-3" id="proveedorTabsContent">
+    <!-- Tab Productos Activos -->
+    <div class="tab-pane fade show active" id="productos" role="tabpanel">
+        {% if productos_activos %}
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Referencia</th>
+                            <th>Nombre</th>
+                            <th>Stock</th>
+                            <th>Precio Coste</th>
+                            <th>Precio Venta</th>
+                            <th>Ubicación</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for prod in productos_activos %}
+                        <tr>
+                            <td><code>{{ prod.referencia or '-' }}</code></td>
+                            <td><strong>{{ prod.nombre }}</strong></td>
+                            <td>
+                                <span class="badge bg-info">{{ prod.cantidad_actual }}/{{ prod.stock_maximo }}</span>
+                            </td>
+                            <td>{{ "%.2f"|format(prod.precio_coste) }}€</td>
+                            <td>{{ "%.2f"|format(prod.precio_venta) }}€</td>
+                            <td>{{ prod.ubicacion or '-' }}</td>
+                            <td>
+                                <a href="{{ url_for('editar_producto', id=prod.id) }}" class="btn btn-sm btn-outline-primary">
+                                    <i class="bi bi-pencil"></i> Editar
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <div class="text-center text-muted py-4">
+                <i class="bi bi-inbox display-4"></i>
+                <p class="mt-2">No hay productos activos de este proveedor</p>
+            </div>
+        {% endif %}
+    </div>
+
+    <!-- Tab Historial de Compras -->
+    <div class="tab-pane fade" id="compras" role="tabpanel">
+        {% if compras %}
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Fecha</th>
+                            <th>Producto</th>
+                            <th>Cantidad</th>
+                            <th>Precio Unitario</th>
+                            <th>Total</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in compras %}
+                        <tr>
+                            <td>
+                                {{ item.pedido.fecha.strftime('%d/%m/%Y') }}<br>
+                                <small class="text-muted">{{ item.pedido.fecha.strftime('%H:%M') }}</small>
+                            </td>
+                            <td>
+                                <strong>{{ item.producto.nombre }}</strong><br>
+                                <small class="text-muted">{{ item.producto.referencia or 'Sin ref.' }}</small>
+                            </td>
+                            <td>
+                                <span class="badge bg-info text-dark">{{ item.pedido.cantidad }} unidades</span>
+                            </td>
+                            <td>{{ "%.2f"|format(item.pedido.precio_unidad_coste) }}€</td>
+                            <td><strong>{{ "%.2f"|format(item.pedido.precio_unidad_coste * item.pedido.cantidad) }}€</strong></td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                    <tfoot class="table-light">
+                        <tr>
+                            <th colspan="4" class="text-end">Total Invertido:</th>
+                            <th>
+                                <strong>{{ "%.2f"|format(estadisticas.total_invertido) }}€</strong>
+                            </th>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        {% else %}
+            <div class="text-center text-muted py-4">
+                <i class="bi bi-inbox display-4"></i>
+                <p class="mt-2">No hay compras registradas a este proveedor</p>
+            </div>
+        {% endif %}
+    </div>
+
+    <!-- Tab Productos Inactivos -->
+    {% if productos_inactivos %}
+    <div class="tab-pane fade" id="inactivos" role="tabpanel">
+        <div class="alert alert-info">
+            <i class="bi bi-info-circle"></i> Estos productos están desactivados pero mantienen la relación con el proveedor.
+        </div>
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead class="table-light">
+                    <tr>
+                        <th>Referencia</th>
+                        <th>Nombre</th>
+                        <th>Stock</th>
+                        <th>Precio Coste</th>
+                        <th>Precio Venta</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for prod in productos_inactivos %}
+                    <tr class="table-secondary">
+                        <td><code>{{ prod.referencia or '-' }}</code></td>
+                        <td>{{ prod.nombre }}</td>
+                        <td>{{ prod.cantidad_actual }}/{{ prod.stock_maximo }}</td>
+                        <td>{{ "%.2f"|format(prod.precio_coste) }}€</td>
+                        <td>{{ "%.2f"|format(prod.precio_venta) }}€</td>
+                        <td>
+                            <a href="{{ url_for('ver_pedidos_producto', id=prod.id) }}" class="btn btn-sm btn-info">
+                                <i class="bi bi-list-ul"></i> Ver Pedidos
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+{% endblock %}
+

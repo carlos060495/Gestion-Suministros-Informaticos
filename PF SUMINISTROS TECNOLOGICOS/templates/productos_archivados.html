@@ -1,0 +1,119 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="bi bi-archive"></i> Productos Archivados</h2>
+    <a href="{{ url_for('inventario') }}" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-left"></i> Volver al Inventario
+    </a>
+</div>
+
+{% if productos %}
+    <div class="alert alert-info">
+        <i class="bi bi-info-circle"></i> Estos productos están desactivados y no aparecen en el inventario ni en el catálogo.
+        Puedes reactivarlos si es necesario.
+    </div>
+
+    <div class="card shadow-sm">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>ID</th>
+                        <th>Producto</th>
+                        <th>Referencia</th>
+                        <th>Stock Actual</th>
+                        <th>Precio Venta</th>
+                        <th>Pedidos Asociados</th>
+                        <th class="text-center">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in productos %}
+                    {% set p = item.producto %}
+                    <tr>
+                        <td>{{ p.id }}</td>
+                        <td>
+                            <strong>{{ p.nombre }}</strong>
+                            <br>
+                            <small class="text-muted">{{ p.descripcion[:50] }}{% if p.descripcion|length > 50 %}...{% endif %}</small>
+                        </td>
+                        <td>
+                            {% if p.referencia %}
+                                <span class="badge bg-secondary">{{ p.referencia }}</span>
+                            {% else %}
+                                <span class="text-muted">-</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if p.cantidad_actual > 0 %}
+                                <span class="badge bg-warning text-dark">{{ p.cantidad_actual }}</span>
+                            {% else %}
+                                <span class="badge bg-secondary">0</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ "%.2f"|format(p.precio_venta) }}€</td>
+                        <td>
+                            {% if item.num_pedidos > 0 %}
+                                <span class="badge bg-info text-dark">
+                                    <i class="bi bi-cart-check"></i> {{ item.num_pedidos }} pedido(s)
+                                </span>
+                                {% if item.pedidos_pendientes > 0 %}
+                                    <br>
+                                    <span class="badge bg-warning text-dark mt-1">
+                                        <i class="bi bi-clock"></i> {{ item.pedidos_pendientes }} pendiente(s)
+                                    </span>
+                                {% endif %}
+                            {% else %}
+                                <span class="text-muted">Sin pedidos</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-center">
+                            {% if item.num_pedidos > 0 %}
+                                <a href="{{ url_for('ver_pedidos_producto', id=p.id) }}" class="btn btn-sm btn-info mb-1">
+                                    <i class="bi bi-list-ul"></i> Ver Pedidos
+                                </a>
+                            {% endif %}
+                            <form action="{{ url_for('reactivar_producto', id=p.id) }}" method="POST" style="display: inline;">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                                <button type="submit" class="btn btn-sm btn-success mb-1"
+                                        onclick="return confirm('¿Reactivar el producto {{ p.nombre }}?')">
+                                    <i class="bi bi-arrow-clockwise"></i> Reactivar
+                                </button>
+                            </form>
+                            <a href="{{ url_for('editar_producto', id=p.id) }}" class="btn btn-sm btn-outline-primary mb-1">
+                                <i class="bi bi-pencil"></i> Editar
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="card mt-3 shadow-sm">
+        <div class="card-body">
+            <h5 class="card-title"><i class="bi bi-lightbulb"></i> Información sobre Productos Archivados</h5>
+            <ul class="mb-0">
+                <li><strong>Desactivados:</strong> Estos productos no aparecen en el inventario ni en el catálogo de clientes.</li>
+                <li><strong>Historial preservado:</strong> Los pedidos asociados se mantienen intactos para auditoría y facturación.</li>
+                <li><strong>Stock conservado:</strong> Si el producto tiene stock, se mantiene hasta que decidas qué hacer con él.</li>
+                <li><strong>Reactivación:</strong> Puedes reactivar cualquier producto en cualquier momento.</li>
+            </ul>
+        </div>
+    </div>
+{% else %}
+    <div class="card shadow-sm">
+        <div class="card-body text-center py-5">
+            <i class="bi bi-inbox display-1 text-muted"></i>
+            <h4 class="mt-3 text-muted">No hay productos archivados</h4>
+            <p class="text-muted">Todos los productos están activos en el inventario.</p>
+            <a href="{{ url_for('inventario') }}" class="btn btn-primary mt-2">
+                <i class="bi bi-arrow-left"></i> Volver al Inventario
+            </a>
+        </div>
+    </div>
+{% endif %}
+{% endblock %}
+
