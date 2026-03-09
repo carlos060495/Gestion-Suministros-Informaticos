@@ -32,7 +32,6 @@ Sistema de gestión de inventario y ventas desarrollado con Flask.
    ```
 
 5. Configura las variables de entorno:
-   - Copia el archivo `.env.example` y renómbralo a `.env`
    - Edita el archivo `.env` con tus credenciales:
      ```
      ADMIN_USER=tu_usuario_admin
@@ -87,4 +86,5 @@ Sistema de gestión de inventario y ventas desarrollado con Flask.
 - Plotly - Visualización de datos
 - Pandas - Procesamiento de datos
 - Bootstrap - Framework CSS (en templates)
+
 
